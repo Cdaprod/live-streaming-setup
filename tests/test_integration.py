@@ -35,6 +35,7 @@ class TestStreamingSetup:
     def rtmp_url(self):
         return "rtmp://localhost:1935/live"
 
+    @pytest.mark.asyncio
     async def test_service_health(self, compose_project):
         """Test that all services are healthy"""
         services = {
@@ -48,6 +49,7 @@ class TestStreamingSetup:
                 async with session.get(url) as response:
                     assert response.status == 200, f"{service} is not healthy"
 
+    @pytest.mark.asyncio
     async def test_rtmp_stream_workflow(self, compose_project, rtmp_url):
         """Test complete RTMP streaming workflow"""
         # Start a test stream using FFmpeg
@@ -84,6 +86,7 @@ class TestStreamingSetup:
         recordings = list(recording_path.glob(f'*{stream_key}*.mp4'))
         assert len(recordings) > 0, "No recording was created"
 
+    @pytest.mark.asyncio
     async def test_device_manager(self, compose_project, api_base_url):
         """Test device manager functionality"""
         async with aiohttp.ClientSession() as session:
@@ -100,6 +103,7 @@ class TestStreamingSetup:
             ) as response:
                 assert response.status in [200, 404]
 
+    @pytest.mark.asyncio
     async def test_websocket_updates(self, compose_project):
         """Test WebSocket real-time updates"""
         ws_url = "ws://localhost:8000/ws"
@@ -121,6 +125,7 @@ class TestStreamingSetup:
         
         assert len(messages_received) > 0, "No WebSocket messages received"
 
+    @pytest.mark.asyncio
     async def test_recording_management(self, compose_project, api_base_url):
         """Test recording management functionality"""
         async with aiohttp.ClientSession() as session:
@@ -141,6 +146,7 @@ class TestStreamingSetup:
             ) as response:
                 assert response.status in [200, 404]
 
+    @pytest.mark.asyncio
     async def test_quality_monitoring(self, compose_project, api_base_url):
         """Test stream quality monitoring"""
         async with aiohttp.ClientSession() as session:

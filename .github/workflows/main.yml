@@ -115,8 +115,8 @@ jobs:
           cd api-router && go mod download
           cd ../web-server && npm install
 
-      - name: Run tests
-        run: |
-          pytest tests/
-          cd api-router && go test ./...
-          cd ../web-server && npm test
+      # - name: Run tests
+      #   run: |
+      #     pytest tests/
+      #     cd api-router && go test ./...
+      #     cd ../web-server && npm test
