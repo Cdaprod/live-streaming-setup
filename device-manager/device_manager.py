@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+"""
+Enhanced Device Manager for Live Streaming Setup
+Handles USB cameras, RTMP streams, and network devices
+Author: @Cdaprod
+"""
+
 import asyncio
 import logging
 import json
@@ -6,68 +13,136 @@ import pyudev
 import v4l2
 import fcntl
 import time
-from typing import Dict, List
+import yaml
+import xml.etree.ElementTree as ET
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from enum import Enum
 from concurrent.futures import ThreadPoolExecutor
 from zeroconf import ServiceBrowser, Zeroconf
-from bonjour_discovery import BonjourServiceListener
+from obswebsocket import obsws, requests as obsrequests
+from pathlib import Path
+
+class StreamType(Enum):
+    """Enumeration of supported stream types"""
+    RTMP = "rtmp"
+    USB = "usb"
+    NETWORK = "network"
+
+class DeviceStatus(Enum):
+    """Enumeration of possible device statuses"""
+    DISCONNECTED = "disconnected"
+    CONNECTING = "connecting"
+    CONNECTED = "connected"
+    ERROR = "error"
+    STREAMING = "streaming"
 
 @dataclass
 class DeviceInfo:
+    """Data class for storing device information"""
     id: str
-    type: str  # 'usb', 'network', 'prism'
+    type: StreamType
     name: str
-    status: str
+    status: DeviceStatus
     address: str
-    last_seen: float
+    stream_key: Optional[str] = None
+    last_seen: float = 0
     reconnect_attempts: int = 0
+    settings: Dict[str, Any] = None
+    error_message: Optional[str] = None
 
-class CameraDeviceManager:
-    def __init__(self):
-        self.logger = logging.getLogger('CameraDeviceManager')
+class StreamQuality:
+    """Stream quality metrics and thresholds"""
+    def __init__(self, config: dict):
+        self.bitrate: int = 0
+        self.fps: float = 0
+        self.resolution: str = ""
+        self.min_bitrate = config.get('bitrate_min', 2000000)
+        self.min_fps = config.get('framerate_min', 24)
+        self.min_resolution = config.get('resolution_min', '1920x1080')
+
+    def is_acceptable(self) -> bool:
+        """Check if current quality meets minimum thresholds"""
+        if self.bitrate < self.min_bitrate:
+            return False
+        if self.fps < self.min_fps:
+            return False
+        width, height = map(int, self.resolution.split('x'))
+        min_width, min_height = map(int, self.min_resolution.split('x'))
+        if width < min_width or height < min_height:
+            return False
+        return True
+
+class EnhancedDeviceManager:
+    """Main device manager class"""
+    def __init__(self, config_path: str = "/app/config/streams.yaml"):
+        self.logger = logging.getLogger('EnhancedDeviceManager')
         self.devices: Dict[str, DeviceInfo] = {}
+        self.stream_qualities: Dict[str, StreamQuality] = {}
+        
+        # Load configuration
+        self.config = self.load_config(config_path)
+        
+        # Set up device monitoring
         self.context = pyudev.Context()
         self.monitor = pyudev.Monitor.from_netlink(self.context)
         self.monitor.filter_by(subsystem='video4linux')
-        self.zeroconf = Zeroconf()
-        self.bonjour_listener = BonjourServiceListener()
-        self.obs_ws = None  # Will be initialized later
         
-        # Known devices configuration
-        self.known_devices = {
-            'cda_ios': {
-                'type': 'prism',
-                'service_name': '_prism._tcp.local.',
-                'friendly_name': 'iOS Main Device'
-            },
-            'cda_ios_14': {
-                'type': 'prism',
-                'service_name': '_prism._tcp.local.',
-                'friendly_name': 'iOS Secondary Device'
-            },
-            'nikon_z7': {
-                'type': 'usb',
-                'vendor_id': '0x04b0',  # Nikon vendor ID
-                'product_id': '0x0000',  # Replace with actual Z7 product ID
-                'friendly_name': 'Nikon Z7'
-            }
-        }
+        # Set up network discovery
+        self.zeroconf = Zeroconf()
+        
+        # Set up OBS WebSocket connection
+        self.obs_ws = None
+        self.obs_config = self.config.get('obs', {})
+        
+        # Set up storage manager
+        self.storage_config = self.config.get('storage', {})
+        self.recording_path = Path(self.storage_config.get('mount_point', '/data/recordings'))
+
+    def load_config(self, path: str) -> dict:
+        """Load configuration from YAML file"""
+        try:
+            with open(path, 'r') as f:
+                config = yaml.safe_load(f)
+                self.logger.info("Successfully loaded configuration")
+                return config
+        except Exception as e:
+            self.logger.error(f"Failed to load config from {path}: {e}")
+            return {}
+
+    async def connect_obs(self):
+        """Connect to OBS via WebSocket"""
+        try:
+            host = self.obs_config.get('host', 'localhost')
+            port = self.obs_config.get('port', 4444)
+            password = self.obs_config.get('password', '')
+            
+            self.obs_ws = obsws(host, port, password)
+            await self.obs_ws.connect()
+            self.logger.info("Successfully connected to OBS WebSocket")
+        except Exception as e:
+            self.logger.error(f"Failed to connect to OBS WebSocket: {e}")
 
     async def start(self):
-        """Start device monitoring and discovery"""
-        self.logger.info("Starting device manager...")
+        """Start all monitoring and management tasks"""
+        self.logger.info("Starting enhanced device manager...")
         
-        # Start USB device monitoring
-        asyncio.create_task(self.monitor_usb_devices())
-        
-        # Start network device discovery
-        asyncio.create_task(self.discover_network_devices())
-        
-        # Start device health check
-        asyncio.create_task(self.check_device_health())
-        
-        # Start OBS WebSocket connection
+        # Connect to OBS
         await self.connect_obs()
+        
+        # Start monitoring tasks
+        tasks = [
+            self.monitor_usb_devices(),
+            self.monitor_rtmp_streams(),
+            self.check_device_health(),
+            self.monitor_storage()
+        ]
+        
+        try:
+            await asyncio.gather(*tasks)
+        except Exception as e:
+            self.logger.error(f"Error in device manager: {e}")
+            raise
 
     async def monitor_usb_devices(self):
         """Monitor USB video devices"""
@@ -86,93 +161,98 @@ class CameraDeviceManager:
         for device in self.context.list_devices(subsystem='video4linux'):
             await self.handle_device_added(device)
 
-    async def discover_network_devices(self):
-        """Discover network-based camera devices (Prism mobile streams)"""
-        self.logger.info("Starting network device discovery...")
-        
-        # Browse for Prism services
-        browser = ServiceBrowser(
-            self.zeroconf,
-            "_prism._tcp.local.",
-            self.bonjour_listener
-        )
-        
-        # Handle Prism device discovery
-        def on_prism_device_found(name, address, port):
-            device_info = DeviceInfo(
-                id=name,
-                type='prism',
-                name=name,
-                status='discovered',
-                address=f"{address}:{port}",
-                last_seen=time.time()
-            )
-            self.devices[name] = device_info
-            asyncio.create_task(self.connect_prism_device(device_info))
+    async def monitor_rtmp_streams(self):
+        """Monitor RTMP streams and their health"""
+        while True:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    url = 'http://localhost:8080/stat'
+                    async with session.get(url) as response:
+                        if response.status == 200:
+                            stats_xml = await response.text()
+                            await self.process_rtmp_stats(stats_xml)
+            except Exception as e:
+                self.logger.error(f"Error monitoring RTMP streams: {e}")
+            
+            await asyncio.sleep(5)
 
-        self.bonjour_listener.add_callback(on_prism_device_found)
-
-    async def connect_prism_device(self, device_info: DeviceInfo):
-        """Connect to a discovered Prism device"""
+    async def process_rtmp_stats(self, stats_xml: str):
+        """Process RTMP statistics from nginx-rtmp"""
         try:
-            # Implement Prism-specific connection logic
-            if device_info.id in ['cda_ios', 'cda_ios_14']:
-                # Update OBS source settings
-                await self.update_obs_source(
-                    source_name=self.known_devices[device_info.id]['friendly_name'],
-                    settings={
-                        'url': f'http://{device_info.address}/stream',
-                        'reconnect': True,
-                        'reconnect_delay_sec': 2
-                    }
-                )
-                device_info.status = 'connected'
-                self.logger.info(f"Connected to Prism device: {device_info.name}")
+            root = ET.fromstring(stats_xml)
+            for stream in root.findall(".//stream"):
+                stream_key = stream.find("name").text
+                if stream_key in self.devices:
+                    device_info = self.devices[stream_key]
+                    device_info.status = DeviceStatus.STREAMING
+                    device_info.last_seen = time.time()
+                    
+                    # Update quality metrics
+                    bw_in = stream.find("bw_in")
+                    if bw_in is not None:
+                        quality = self.stream_qualities.get(stream_key, StreamQuality(self.config))
+                        quality.bitrate = int(bw_in.text)
+                        if not quality.is_acceptable():
+                            self.logger.warning(f"Stream quality below threshold: {stream_key}")
         except Exception as e:
-            self.logger.error(f"Failed to connect to Prism device: {e}")
-            device_info.status = 'error'
-            device_info.reconnect_attempts += 1
+            self.logger.error(f"Error processing RTMP stats: {e}")
 
     async def handle_device_added(self, device):
         """Handle new USB video device connection"""
         try:
-            # Check if this is a known device
-            for device_id, config in self.known_devices.items():
+            vendor_id = device.get('ID_VENDOR_ID')
+            product_id = device.get('ID_MODEL_ID')
+            
+            # Check against known devices in config
+            for device_id, config in self.config.get('sources', {}).items():
                 if config['type'] == 'usb':
-                    if (device.get('ID_VENDOR_ID') == config['vendor_id'] and
-                        device.get('ID_MODEL_ID') == config['product_id']):
+                    if (config['vendor_id'] == vendor_id and
+                        config['product_id'] == product_id):
                         
                         device_info = DeviceInfo(
                             id=device_id,
-                            type='usb',
-                            name=config['friendly_name'],
-                            status='connected',
+                            type=StreamType.USB,
+                            name=config['name'],
+                            status=DeviceStatus.CONNECTED,
                             address=device.device_node,
+                            settings=config.get('settings', {}),
                             last_seen=time.time()
                         )
                         
                         self.devices[device_id] = device_info
-                        await self.update_obs_source(
-                            source_name=config['friendly_name'],
-                            settings={
-                                'device': device.device_node,
-                                'input_format': 'mjpeg',  # Adjust based on your capture card
-                                'resolution': '3840x2160',  # 4K for Z7
-                                'fps': 30
-                            }
-                        )
-                        self.logger.info(f"Added USB device: {config['friendly_name']}")
-                        
+                        await self.update_obs_source(device_info)
+                        self.logger.info(f"Added USB device: {device_info.name}")
+        
         except Exception as e:
             self.logger.error(f"Error handling device addition: {e}")
 
-    async def handle_device_removed(self, device):
-        """Handle USB video device disconnection"""
-        for device_id, device_info in list(self.devices.items()):
-            if device_info.type == 'usb' and device_info.address == device.device_node:
-                device_info.status = 'disconnected'
-                self.logger.info(f"Device removed: {device_info.name}")
-                await self.trigger_reconnect(device_info)
+    async def update_obs_source(self, device_info: DeviceInfo):
+        """Update OBS source settings"""
+        if self.obs_ws and self.obs_ws.is_connected():
+            try:
+                settings = device_info.settings or {}
+                if device_info.type == StreamType.USB:
+                    settings.update({
+                        'device': device_info.address,
+                        'input_format': settings.get('input_format', 'mjpeg'),
+                        'resolution': settings.get('resolution', '3840x2160'),
+                        'fps': settings.get('fps', 30)
+                    })
+                elif device_info.type == StreamType.RTMP:
+                    settings.update({
+                        'url': f'rtmp://localhost:1935/live/{device_info.stream_key}',
+                        'reconnect': True,
+                        'reconnect_delay_sec': 2
+                    })
+                
+                await self.obs_ws.call(obsrequests.SetSourceSettings(
+                    sourceName=device_info.name,
+                    sourceSettings=settings
+                ))
+                self.logger.info(f"Updated OBS source: {device_info.name}")
+                
+            except Exception as e:
+                self.logger.error(f"Failed to update OBS source: {e}")
 
     async def check_device_health(self):
         """Periodic health check for all devices"""
@@ -180,62 +260,97 @@ class CameraDeviceManager:
             try:
                 current_time = time.time()
                 for device_id, device_info in list(self.devices.items()):
-                    if device_info.status != 'connected':
-                        if current_time - device_info.last_seen > 30:  # 30 seconds timeout
+                    if device_info.status != DeviceStatus.CONNECTED:
+                        if current_time - device_info.last_seen > 30:
                             await self.trigger_reconnect(device_info)
                     
-                    # Check streaming status for connected devices
-                    if device_info.status == 'connected':
+                    if device_info.status == DeviceStatus.CONNECTED:
                         await self.verify_device_streaming(device_info)
                         
             except Exception as e:
                 self.logger.error(f"Error in health check: {e}")
             
-            await asyncio.sleep(5)  # Check every 5 seconds
+            await asyncio.sleep(5)
 
-    async def verify_device_streaming(self, device_info: DeviceInfo):
-        """Verify if a device is actually streaming data"""
-        try:
-            if device_info.type == 'usb':
-                # Check USB device streaming status
-                with open(device_info.address, 'rb') as f:
-                    try:
-                        fcntl.ioctl(f, v4l2.VIDIOC_G_FMT, v4l2.v4l2_format())
-                    except:
-                        await self.trigger_reconnect(device_info)
-                        
-            elif device_info.type == 'prism':
-                # Check Prism stream health
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(f'http://{device_info.address}/health') as resp:
-                        if resp.status != 200:
-                            await self.trigger_reconnect(device_info)
-                            
-        except Exception as e:
-            self.logger.error(f"Error verifying device streaming: {e}")
-            await self.trigger_reconnect(device_info)
-
-    async def trigger_reconnect(self, device_info: DeviceInfo):
-        """Handle device reconnection"""
-        device_info.reconnect_attempts += 1
-        self.logger.info(f"Attempting to reconnect {device_info.name} (attempt {device_info.reconnect_attempts})")
-        
-        if device_info.type == 'prism':
-            await self.connect_prism_device(device_info)
-        elif device_info.type == 'usb':
-            # USB devices will be automatically handled by monitor_usb_devices
-            pass
-
-    async def update_obs_source(self, source_name: str, settings: dict):
-        """Update OBS source settings"""
-        if self.obs_ws and self.obs_ws.is_connected():
+    async def monitor_storage(self):
+        """Monitor NAS storage space and manage recordings"""
+        while True:
             try:
-                await self.obs_ws.call('SetSourceSettings', {
-                    'sourceName': source_name,
-                    'sourceSettings': settings
-                })
+                space = self.recording_path.stat().st_free
+                total = self.recording_path.stat().st_size
+                used_percent = (total - space) / total * 100
+                
+                if used_percent > 90:
+                    self.logger.warning(f"Storage space critical: {used_percent:.1f}% used")
+                    await self.cleanup_old_recordings()
+                    
             except Exception as e:
-                self.logger.error(f"Failed to update OBS source: {e}")
+                self.logger.error(f"Error monitoring storage: {e}")
+            
+            await asyncio.sleep(300)  # Check every 5 minutes
+
+    async def cleanup_old_recordings(self):
+        """Clean up old recordings when storage is low"""
+        try:
+            # Get all recordings sorted by modification time
+            recordings = sorted(
+                self.recording_path.glob('**/*.mp4'),
+                key=lambda p: p.stat().st_mtime
+            )
+            
+            # Remove oldest recordings until we're below 80% usage
+            while len(recordings) > 0:
+                space = self.recording_path.stat().st_free
+                total = self.recording_path.stat().st_size
+                if (total - space) / total * 100 < 80:
+                    break
+                    
+                oldest = recordings.pop(0)
+                oldest.unlink()
+                self.logger.info(f"Removed old recording: {oldest}")
+                
+        except Exception as e:
+            self.logger.error(f"Error cleaning up recordings: {e}")
+
+    async def create_clip(self, stream_key: str, duration: int = 30):
+        """Create a clip from the current stream"""
+        try:
+            device_info = self.devices.get(stream_key)
+            if not device_info:
+                raise ValueError(f"Unknown stream: {stream_key}")
+                
+            if device_info.status != DeviceStatus.STREAMING:
+                raise ValueError(f"Stream not active: {stream_key}")
+                
+            # Create clip directory
+            clip_path = self.recording_path / 'clips' / stream_key
+            clip_path.mkdir(parents=True, exist_ok=True)
+            
+            # Generate clip filename
+            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            clip_file = clip_path / f"clip_{timestamp}.mp4"
+            
+            # Create clip using ffmpeg
+            process = await asyncio.create_subprocess_exec(
+                'ffmpeg',
+                '-i', f'rtmp://localhost:1935/live/{stream_key}',
+                '-t', str(duration),
+                '-c', 'copy',
+                str(clip_file),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            await process.communicate()
+            if process.returncode == 0:
+                self.logger.info(f"Created clip: {clip_file}")
+                return str(clip_file)
+            else:
+                raise RuntimeError("Failed to create clip")
+                
+        except Exception as e:
+            self.logger.error(f"Error creating clip: {e}")
+            raise
 
 async def main():
     # Configure logging
@@ -245,7 +360,7 @@ async def main():
     )
     
     # Create and start device manager
-    manager = CameraDeviceManager()
+    manager = EnhancedDeviceManager()
     await manager.start()
     
     try:
@@ -254,6 +369,8 @@ async def main():
             await asyncio.sleep(1)
     except KeyboardInterrupt:
         manager.zeroconf.close()
+        if manager.obs_ws:
+            await manager.obs_ws.disconnect()
 
 if __name__ == "__main__":
     asyncio.run(main())

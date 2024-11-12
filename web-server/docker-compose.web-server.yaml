@@ -1,0 +1,16 @@
+services:
+  web-server:
+    build:
+      context: ./web-server
+    image: cdaprod/web-server:latest
+    container_name: web_server
+    network_mode: "host"  # Using host network for easy local access
+    environment:
+      - API_URL=http://localhost:8000
+      - WS_URL=ws://localhost:8000/ws
+    volumes:
+      - ./web-server:/app
+      - /app/node_modules
+    depends_on:
+      - api-router
+    restart: always

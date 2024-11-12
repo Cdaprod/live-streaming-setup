@@ -1,0 +1,54 @@
+# config/streams.yaml
+sources:
+  main_camera:
+    type: "usb"
+    device_name: "Nikon Z7"
+    input: "/dev/video0"  # Will be detected automatically
+    resolution: "3840x2160"
+    framerate: 30
+    quality: "high"
+    recording:
+      enabled: true
+      format: "mp4"
+      codec: "h264_nvenc"  # Hardware encoding if available
+      preset: "quality"
+
+  iphone_main:
+    type: "rtmp"
+    name: "iOS Main Device"
+    stream_key: "ios_main"
+    recording:
+      enabled: true
+      format: "mp4"
+      quality: "source"
+
+  iphone_secondary:
+    type: "rtmp"
+    name: "iOS Secondary"
+    stream_key: "ios_secondary"
+    recording:
+      enabled: true
+      format: "mp4"
+      quality: "source"
+
+storage:
+  nas:
+    host: "cda_ds.local"
+    path: "/volume1/videos"
+    mount_point: "/data/recordings"
+    structure:
+      - "{date}"
+      - "{source}"
+      - "{quality}"
+
+monitoring:
+  quality_thresholds:
+    bitrate_min: 2000000  # 2 Mbps
+    resolution_min: "1920x1080"
+    framerate_min: 24
+  alerts:
+    enabled: true
+    notify_on:
+      - quality_drop
+      - connection_loss
+      - storage_low

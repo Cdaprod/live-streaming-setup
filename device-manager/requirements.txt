@@ -1,0 +1,5 @@
+pyudev
+aiohttp
+obs-websocket-py
+zeroconf
+pyyaml
