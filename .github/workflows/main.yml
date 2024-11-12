@@ -50,8 +50,8 @@ jobs:
 
       - name: Start Services with Docker Compose
         run: |
-          docker-compose up -d
-
+          docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build -d
+ 
       - name: Wait for Services
         run: |
           # Wait for RTMP Server
