@@ -2,7 +2,7 @@
 import React from 'react';
 import { LineChart, BarChart } from 'recharts';
 import { Camera, Activity, Film, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useStreamStats } from '../hooks/useStreamStats';
 
 const StreamDashboard = () => {
