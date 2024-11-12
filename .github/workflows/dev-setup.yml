@@ -32,6 +32,8 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.21'
+          cache: true
+          cache-dependency-path: api-router/go.sum
 
       - name: Update Go dependencies
         run: |
@@ -46,6 +48,7 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: web-server/package-lock.json
 
       - name: Update Node dependencies
         run: |
