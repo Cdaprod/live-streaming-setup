@@ -48,7 +48,7 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: web-server/package-lock.json
+          # cache-dependency-path: web-server/package-lock.json
 
       - name: Update Node dependencies
         run: |
