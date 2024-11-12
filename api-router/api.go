@@ -1,6 +1,8 @@
 package main
 
 import (
+    "io"
+    "fmt"
     "context"
     "encoding/json"
     "log"
@@ -65,6 +67,80 @@ func (ar *APIRouter) SetupRoutes() {
     // Recording management
     ar.router.HandleFunc("/api/recordings", ar.handleListRecordings).Methods("GET")
     ar.router.HandleFunc("/api/recordings/{id}", ar.handleRecordingOperation).Methods("POST")
+}
+
+func (ar *APIRouter) handleListDevices(w http.ResponseWriter, r *http.Request) {
+    resp, err := http.Get(fmt.Sprintf("%s/devices", ar.deviceManagerURL))
+    if err != nil {
+        http.Error(w, "Failed to get devices: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer resp.Body.Close()
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(resp.StatusCode)
+    if _, err := io.Copy(w, resp.Body); err != nil {
+        log.Printf("Error copying response: %v", err)
+    }
+}
+
+func (ar *APIRouter) handleDeviceReconnect(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    deviceID := vars["id"]
+
+    req, err := http.NewRequest("POST", fmt.Sprintf("%s/devices/%s/reconnect", ar.deviceManagerURL, deviceID), r.Body)
+    if err != nil {
+        http.Error(w, "Failed to create request: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        http.Error(w, "Failed to reconnect device: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer resp.Body.Close()
+
+    w.WriteHeader(resp.StatusCode)
+    if _, err := io.Copy(w, resp.Body); err != nil {
+        log.Printf("Error copying response: %v", err)
+    }
+}
+
+func (ar *APIRouter) handleListRecordings(w http.ResponseWriter, r *http.Request) {
+    resp, err := http.Get(fmt.Sprintf("%s/recordings", ar.deviceManagerURL))
+    if err != nil {
+        http.Error(w, "Failed to get recordings: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer resp.Body.Close()
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(resp.StatusCode)
+    if _, err := io.Copy(w, resp.Body); err != nil {
+        log.Printf("Error copying response: %v", err)
+    }
+}
+
+func (ar *APIRouter) handleRecordingOperation(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    recordingID := vars["id"]
+
+    req, err := http.NewRequest("POST", fmt.Sprintf("%s/recordings/%s", ar.deviceManagerURL, recordingID), r.Body)
+    if err != nil {
+        http.Error(w, "Failed to create request: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        http.Error(w, "Failed to perform operation on recording: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer resp.Body.Close()
+
+    w.WriteHeader(resp.StatusCode)
+    if _, err := io.Copy(w, resp.Body); err != nil {
+        log.Printf("Error copying response: %v", err)
+    }
 }
 
 func (ar *APIRouter) handleListStreams(w http.ResponseWriter, r *http.Request) {
