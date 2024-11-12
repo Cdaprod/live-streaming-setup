@@ -1,0 +1,58 @@
+services:
+  rtmp-server:
+    build:
+      context: ./rtmp-server
+    image: cdaprod/rtmp-server:latest
+    container_name: rtmp_server
+    ports:
+      - "1935:1935"  # RTMP port
+      - "8080:8080"  # HTTP port for Nginx (optional)
+    volumes:
+      - /mnt/data/rtmp_recordings:/data/recordings  # NAS mounted locally
+    restart: always
+
+  # esp32_cam_streamer:
+  #   build:
+  #     context: ./ffmpeg-streamer
+  #   image: cdaprod/ffmpeg-streamer:latest
+  #   container_name: esp32_cam_streamer
+  #   environment:
+  #     - ESP32_CAM_URL=http://<esp32-cam-ip>/stream  # Replace with your ESP32-CAM IP
+  #     - RTMP_SERVER_URL=rtmp://192.168.0.25:1935/live/esp_cam
+  #   depends_on:
+  #     - rtmp-server
+  #   restart: always
+
+  # Add more FFmpeg streamers if you have multiple ESP32-CAMs
+  # esp32_cam_streamer_2:
+  #   build:
+  #     context: ./ffmpeg-streamer
+  #   image: cdaprod/ffmpeg-streamer:latest
+  #   container_name: esp32_cam_streamer_2
+  #   environment:
+  #     - ESP32_CAM_URL=http://<esp32-cam-ip-2>/stream
+  #     - RTMP_SERVER_URL=rtmp://192.168.0.25:1935/live/esp_cam_2
+  #   depends_on:
+  #     - rtmp-server
+  #   restart: always
+  
+  device-manager:
+    build:
+      context: ./device-manager
+    image: cdaprod/device-manager:latest
+    container_name: device_manager
+    privileged: true  # Needed for USB device access
+    volumes:
+      - /dev:/dev
+      - /run/udev:/run/udev:ro
+    environment:
+      - OBS_WS_HOST=192.168.0.187
+      - OBS_WS_PORT=4444
+      - OBS_WS_PASSWORD=${OBS_WS_PASSWORD}
+    networks:
+      - stream_net
+    restart: always
+
+networks:
+  stream_net:
+    driver: bridge
