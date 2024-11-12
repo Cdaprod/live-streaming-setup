@@ -1,10 +1,12 @@
+version: '3.8'
+
 services:
   rtmp-server:
     build:
       context: ./rtmp-server
     image: cdaprod/rtmp-server:latest
     container_name: rtmp_server
-    network_mode: "host"  # Using host network for better local device access
+    network_mode: "host"
     volumes:
       - type: volume
         source: stream_recordings
@@ -16,8 +18,8 @@ services:
       context: ./device-manager
     image: cdaprod/device-manager:latest
     container_name: device_manager
-    network_mode: "host"  # Using host network for USB and local device access
-    privileged: true      # Needed for USB device access
+    network_mode: "host"
+    privileged: true
     volumes:
       - /dev:/dev
       - /run/udev:/run/udev:ro
@@ -29,6 +31,9 @@ services:
       - NAS_PATH=/volume1/videos
       - RTMP_SERVER=rtmp://127.0.0.1:1935/live
       - LOCAL_IP=192.168.0.187
+      - OBS_WS_HOST=127.0.0.1
+      - OBS_WS_PORT=4444
+      - OBS_WS_PASSWORD=${OBS_WS_PASSWORD}
     depends_on:
       - rtmp-server
     restart: always
@@ -38,7 +43,7 @@ services:
       context: ./api-router
     image: cdaprod/api-router:latest
     container_name: api_router
-    network_mode: "host"  # Using host network for local API access
+    network_mode: "host"
     environment:
       - DEVICE_MANAGER_URL=http://127.0.0.1:5000
       - RTMP_SERVER_URL=http://127.0.0.1:8080
@@ -48,8 +53,22 @@ services:
       - device-manager
     restart: always
 
+  web-server:
+    build:
+      context: ./web-server
+    image: cdaprod/web-server:latest
+    container_name: web_server
+    network_mode: "host"
+    environment:
+      - API_URL=http://localhost:8000
+      - WS_URL=ws://localhost:8000/ws
+    volumes:
+      - ./web-server:/app
+      - /app/node_modules
+    depends_on:
+      - api-router
+    restart: always
 
-  
 volumes:
   stream_recordings:
     driver_opts:

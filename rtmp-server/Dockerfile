@@ -1,8 +1,22 @@
-# Base image with Nginx and RTMP module
+# rtmp-server/Dockerfile
 FROM tiangolo/nginx-rtmp
 
-# Copy custom Nginx configuration
+# Install FFmpeg for transcoding
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Expose necessary ports
+# Create directories
+RUN mkdir -p /data/recordings \
+    && mkdir -p /tmp/hls \
+    && chown -R nginx:nginx /data/recordings /tmp/hls
+
+# Expose RTMP and HTTP ports
 EXPOSE 1935 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD curl -f http://localhost:8080/health || exit 1

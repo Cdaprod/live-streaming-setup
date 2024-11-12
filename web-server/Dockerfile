@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -16,5 +16,8 @@ RUN npm run build
 # Expose port
 EXPOSE 3000
 
-# Start the application
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD wget -qO- http://localhost:3000/health || exit 1
+
 CMD ["npm", "start"]
