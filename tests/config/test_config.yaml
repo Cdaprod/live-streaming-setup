@@ -1,0 +1,28 @@
+# tests/config/test_config.yaml
+rtmp:
+  url: "rtmp://localhost:1935/live"
+  stream_keys:
+    - test_stream
+    - test_iphone
+    - test_camera
+
+api:
+  base_url: "http://localhost:8000/api"
+  endpoints:
+    health: "/health"
+    streams: "/streams"
+    devices: "/devices"
+    recordings: "/recordings"
+    clips: "/clips"
+
+websocket:
+  url: "ws://localhost:8000/ws"
+
+storage:
+  recordings_path: "/data/recordings"
+  test_assets_path: "tests/assets"
+
+quality_thresholds:
+  min_bitrate: 2000000  # 2 Mbps
+  min_resolution: "1920x1080"
+  min_fps: 30

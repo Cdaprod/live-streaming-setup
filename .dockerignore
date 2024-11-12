@@ -1,0 +1,22 @@
+# Root .dockerignore - for shared patterns
+.git
+.gitignore
+.env
+.example.env
+README.md
+LICENSE
+*.md
+.vscode/
+.idea/
+*.log
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/*.so
+**/node_modules
+**/npm-debug.log
+**/.pytest_cache
+tests/
+docs/

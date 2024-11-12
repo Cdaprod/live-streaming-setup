@@ -6,3 +6,4 @@ zeroconf==0.128.0
 pyyaml==6.0.1
 v4l2==0.3.0
 python-fcntl==0.0.2
+python-dotenv==1.0.0

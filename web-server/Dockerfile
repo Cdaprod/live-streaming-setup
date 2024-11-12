@@ -1,23 +1,29 @@
 # web-server/Dockerfile
-FROM node:18-alpine
-
+FROM node:18-alpine AS deps
 WORKDIR /app
-
-# Install dependencies
 COPY package*.json ./
 RUN npm ci
 
-# Copy source code
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Expose port
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
 EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s \
     CMD wget -qO- http://localhost:3000/health || exit 1
+ENV PORT 3000
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

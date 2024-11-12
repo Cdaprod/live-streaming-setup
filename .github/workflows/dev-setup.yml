@@ -1,0 +1,59 @@
+# .github/workflows/dev-setup.yml
+name: Development Environment Setup
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'device-manager/requirements.txt'
+      - 'api-router/go.mod'
+      - 'web-server/package.json'
+
+jobs:
+  update-dev-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Update Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r device-manager/requirements.txt
+          pip freeze > device-manager/requirements.lock
+
+      - name: Set up Go environment
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Update Go dependencies
+        run: |
+          cd api-router
+          go mod tidy
+          go mod verify
+
+      - name: Set up Node environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Update Node dependencies
+        run: |
+          cd web-server
+          npm install
+          npm audit fix
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: 'chore: update dependencies'
+          branch: 'chore/update-dependencies'
+          commit-message: 'chore: update project dependencies'
+          body: 'Automated dependency updates'

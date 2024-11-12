@@ -1,0 +1,35 @@
+# api-router/.dockerignore
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go specific
+*.test
+*.out
+go.work
+
+# IDE
+.idea/
+.vscode/
+
+# Temp files
+*.log
+*.tmp
+
+# Development
+.git/
+.gitignore
+README.md
+docs/
+tests/
+examples/
+
+# Dependencies - but keep go.mod and go.sum
+vendor/
+
+# Environment
+.env
+*.env
