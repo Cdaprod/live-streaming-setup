@@ -203,7 +203,7 @@ This streaming setup powers my tech content creation across various platforms. F
 <div align="center">
   <h3>🚀 Support My Work</h3>
   <p>
-    <a href="https://www.buymeacoffee.com/cdaprod">
+    <a href="https://www.buymeacoffee.com/cdasmkt">
       <img src="https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee" />
     </a>
     <a href="https://github.com/sponsors/Cdaprod">
