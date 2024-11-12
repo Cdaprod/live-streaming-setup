@@ -1,4 +1,3 @@
-// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -6,15 +5,15 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
-  // If you need to proxy API requests
+  output: 'standalone', // Add this to ensure standalone output
   async rewrites() {
     return [
       {
         source: '/api/:path*',
         destination: 'http://localhost:8000/api/:path*',
       },
-    ]
+    ];
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
