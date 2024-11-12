@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-RUN groupadd -g 101 nginx && useradd -u 101 -g nginx -s /sbin/nologin -M nginx
+RUN groupadd -g 9999 nginx && useradd -u 9999 -g nginx -s /sbin/nologin -M nginx
 
 # Create directories
 RUN mkdir -p /data/recordings \
