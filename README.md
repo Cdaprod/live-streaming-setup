@@ -1,7 +1,7 @@
 # 🎥 Cdaprod's Awesome Live Streaming Setup
 
 [![CI/CD Pipeline](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/main.yml/badge.svg)](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/main.yml)
-[![Security Scan](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/security.yml/badge.svg)](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/security.yml)
+
 [![Development Setup](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/dev-setup.yml/badge.svg)](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/dev-setup.yml)
 
 ---
