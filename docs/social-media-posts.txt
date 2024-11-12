@@ -1,0 +1,38 @@
+1. Twitter (Tech Audience)
+
+Post 1:
+🚀 Just dropped the complete guide for my multi-camera live streaming setup! 📸 Stream, record, and store high-quality broadcasts on your NAS—all powered by Docker. No more losing quality or missing key moments. Check out how I built it: [link] #DevOps #LiveStreaming #Docker
+
+Post 2:
+🎥 Building a pro-grade streaming setup from your local network isn’t just a dream! I’ve got my Nikon Z7, iOS streams, and even my NAS all working in harmony. Here’s how you can, too: [link] #TechDIY #StreamingSetup
+
+2. LinkedIn (Professional/DevOps Audience)
+
+🌟 New Blog Alert! 🌟
+Ever thought about bringing your content creation setup fully in-house? I’ve engineered a comprehensive streaming solution that handles everything from multi-camera feeds to local NAS storage—all within Docker. This setup is built for developers, streamers, and tech enthusiasts who want total control over their content. Dive into the full guide here: [link] #DevOps #ContentCreation #LiveStreaming
+
+📈 Boost Your Streaming Game!
+I combined my DevOps expertise and love for content creation to build a seamless, high-quality live streaming setup. The system includes RTMP servers, a React dashboard, multi-device streaming, and local recordings stored on a NAS. Ready to take control of your streaming? [link] #DevOpsEngineering #Docker
+
+3. Instagram (Visually Focused Tech Post)
+
+Caption:
+🌟 Bringing pro-level live streaming to my local network! 🎥 From my Nikon Z7 to iOS devices, I’m broadcasting in full quality and saving every moment on my NAS. Plus, it’s all running on Docker. Want to build your own? Check my guide at [link] #LiveStreaming #TechSetup #ContentCreatorLife
+
+Visuals: Photo of your streaming setup or a screenshot of the web dashboard with “Pro Streaming Setup” text overlay.
+
+4. Facebook (Engagement-Focused Post)
+
+🎉 Big news, tech friends! I’ve just finished building my ultimate local streaming command center! From multiple cameras to local high-quality recordings stored on my NAS—all orchestrated with Docker and powered by a slick React dashboard. Want to know how to build your own or learn more? Check out my guide here: [link]
+
+💡 P.S. I’m sharing exclusive tips and live streaming insights on [YouTube/Twitch]. Make sure to follow and support! #TechSavvy #LiveStreaming #ContentCreation
+
+5. YouTube Community Post
+
+👋 Hey, tech fam! Just released my step-by-step guide on creating a high-quality, multi-camera streaming setup from your local network! 📸💻 Complete with Docker containers, RTMP server, and NAS storage. Check it out and drop your thoughts! [link] #LiveStreamingSetup #TechDIY
+
+6. Reddit (Tech Subreddits)
+
+Title: How I Built a Pro Multi-Camera Streaming Setup with Local Storage Using Docker
+Body:
+Hey everyone! After weeks of fine-tuning, I’m excited to share my local streaming setup that brings together multi-camera feeds, mobile streams, and a NAS for high-quality local recordings. It’s perfect for content creators and tech enthusiasts who want full control over their streaming. I’ve detailed every step and added some pro tips on setup and troubleshooting. Happy to answer any questions! Full guide here: [link] #DIYStreaming #DevOps #TechSetup
