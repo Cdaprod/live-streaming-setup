@@ -1,4 +1,3 @@
-# .github/workflows/dev-setup.yml
 name: Development Environment Setup
 
 on:
@@ -26,6 +25,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r device-manager/requirements.txt
           pip freeze > device-manager/requirements.lock
+        # Ensure lock file changes are committed
+        continue-on-error: true
 
       - name: Set up Go environment
         uses: actions/setup-go@v4
@@ -37,6 +38,8 @@ jobs:
           cd api-router
           go mod tidy
           go mod verify
+          cd ..
+        # Go mod tidy may modify go.sum; ensure changes are committed
 
       - name: Set up Node environment
         uses: actions/setup-node@v3
@@ -48,7 +51,18 @@ jobs:
         run: |
           cd web-server
           npm install
+          npm ci  # Ensure clean, reproducible installations
           npm audit fix
+          npm shrinkwrap  # Create a shrinkwrap or lock file for added stability
+          cd ..
+        continue-on-error: true
+
+      - name: Commit lock files
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add device-manager/requirements.lock api-router/go.sum web-server/package-lock.json
+          git commit -m "chore: update lock files" || echo "No changes to commit"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
@@ -57,3 +71,5 @@ jobs:
           branch: 'chore/update-dependencies'
           commit-message: 'chore: update project dependencies'
           body: 'Automated dependency updates'
+          labels: 'dependencies, automation'
+          assignees: 'Cdaprod'  # Replace with your GitHub username if needed
