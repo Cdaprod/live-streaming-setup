@@ -1,6 +1,4 @@
-# 🎥 Cdaprod's Awesome Live Streaming Setup
-
-[![CI/CD Pipeline](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/main.yml/badge.svg)](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/main.yml)
+# 🎥 Cdaprod's Awesome Live Streaming Setu
 
 [![Development Setup](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/dev-setup.yml/badge.svg)](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/dev-setup.yml)
 
