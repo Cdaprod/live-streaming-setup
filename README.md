@@ -1,4 +1,4 @@
-# 🎥 Cdaprod's Awesome Live Streaming Setu
+# 🎥 Cdaprod's Awesome Live Streaming Setup
 
 [![Development Setup](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/dev-setup.yml/badge.svg)](https://github.com/Cdaprod/live-streaming-setup/actions/workflows/dev-setup.yml)
 
