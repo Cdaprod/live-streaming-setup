@@ -39,7 +39,13 @@ storage:
     structure:
       - "{date}"
       - "{source}"
-      - "{quality}"
+  persistent:          # Post Processing Module (../post_processing/...)
+    mount_point: "/data/recordings"
+    structure:
+      - "{date}"       # Folder per date
+      - "{source}"     # Subfolder by source (e.g., Twitch, OBS)
+  ephemeral:
+    temp_path: "/data/ephemeral"
 
 monitoring:
   quality_thresholds:
