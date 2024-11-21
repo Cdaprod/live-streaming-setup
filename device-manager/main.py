@@ -1,14 +1,13 @@
 from fastapi import FastAPI
-from app.api.routes import router
+from app.api.routes import router as api_router
 
 app = FastAPI(
     title="Streaming Service Manager",
     version="1.0",
-    description="A service for managing Twitch VODs and post-processing workflows."
+    description="A service for managing Twitch VODs and OBS scenes."
 )
 
-# Include API routes
-app.include_router(router)
+app.include_router(api_router)
 
 if __name__ == "__main__":
     import uvicorn
