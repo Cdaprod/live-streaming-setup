@@ -1,0 +1,46 @@
+obs:
+  host: "localhost"
+  port: 4444
+  password: "your_obs_password"
+  master_scene:
+    sources:
+      - name: "Main Camera"
+        type: "video_capture"
+        settings:
+          device: "Nikon Z7"
+        transform:
+          pos_x: 0
+          pos_y: 0
+          scale_x: 1920
+          scale_y: 1080
+          alignment: 5
+      - name: "iPhone ScreenBroadcast"
+        type: "window_capture"
+        settings:
+          window: "iPhone 15 Pro Max"
+        transform:
+          pos_x: 640
+          pos_y: 0
+          scale_x: 640
+          scale_y: 1080
+          alignment: 5
+      - name: "Default Page"
+        type: "image_source"
+        settings:
+          file_path: "./default_image.webp"
+        transform:
+          pos_x: 0
+          pos_y: 0
+          scale_x: 1920
+          scale_y: 1080
+          alignment: 5
+
+twitch:
+  client_id: "your_twitch_client_id"
+  client_secret: "your_twitch_client_secret"
+
+storage:
+  persistent:
+    mount_point: "/data/recordings"
+  ephemeral:
+    temp_path: "/data/ephemeral"
